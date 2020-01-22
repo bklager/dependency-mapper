@@ -1,0 +1,24 @@
+{
+  "maxResults": 50,
+  "startAt": 0,
+  "isLast": true,
+  "values": [
+    {
+      "id": 3,
+      "self": "https://bklager.atlassian.net/rest/agile/1.0/sprint/3",
+      "state": "active",
+      "name": "DM Sprint 1",
+      "startDate": "2019-10-08T04:04:06.771Z",
+      "endDate": "2019-10-22T04:04:00.000Z",
+      "originBoardId": 3,
+      "goal": ""
+    },
+    {
+      "id": 4,
+      "self": "https://bklager.atlassian.net/rest/agile/1.0/sprint/4",
+      "state": "future",
+      "name": "DM Sprint 2",
+      "originBoardId": 3
+    }
+  ]
+}
