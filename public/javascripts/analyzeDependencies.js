@@ -13,6 +13,7 @@ function Node(issueKey, inwardLinkArray, outwardLinkArray, originalTime, remaini
     this.inwardlinks = [];
     this.outwardlinks = [];
     this.completed = false;
+    this.completedTime = -1;
     this.minStartTime = 0;
     this.endTime = -1;
     inwardLinkArray.forEach(link => {
@@ -204,6 +205,17 @@ function initialMinStartTime(nodeMap){
    });
 }
 
+function largestCompletedParentTime(nodeMap, key) {
+    let largestTime = 0;
+    if(nodeMap.has(key) && nodeMap.get(key).outwardlinks.length !== 0) {
+        nodeMap.get(key).outwardlinks.forEach(parent => {
+            if(nodeMap.get(parent).completedTime > largestTime) {
+                largestTime = nodeMap.get(parent).completedTime;
+            }
+        });
+    }
+    return largestTime
+}
 
 function minTimeLimitedDevelopers(nodeMap, num) {
     numDevelopers = num;
@@ -211,35 +223,82 @@ function minTimeLimitedDevelopers(nodeMap, num) {
     for(let i = 0; i < numDevelopers; i++) {
         developers.push(0);
     }
-    var completedTasks = [];
-    var incompleteTasks = [];
+    var completedTasks = new Map();
+    var incompleteTasks = new Map();
 
     nodeMap.forEach(function (value, key, map) {
-        incompleteTasks.push(key);
+        incompleteTasks.set(key, value.endTime);
     });
 
-    while(incompleteTasks.length !== 0) {
+
+    while(incompleteTasks.size !== 0) {
         // if the task is ready to work then we can proceed to try and find if it is the
         // best task to place, increment the developers array, flag as completed
         // move the task to completed array, remove from
 
         let earliestEndTime = Number.MAX_VALUE;
+        let nextTask = -1;
+
+        //this loop will find the smallest time that is ready to work
+        incompleteTasks.forEach((value, key, map) => {
+           if(readyToWork(nodeMap, nodeMap.get(key)) && value < earliestEndTime)  {
+               earliestEndTime = value;
+               nextTask = key;
+           }
+        });
+
+        let startTime =  largestCompletedParentTime(nodeMap, nextTask);
+
         index = -1;
-
-        // DOUBLE CHECK THAT THIS WORKS AS INTENDED
-        // OH SHIT IT WILL JUST FIND THE SMALL VALUE, NOT THE INDEX OF IT
-        // OKAY NEED TO SEE IF I CAN ADJUST THIS TO SAVE THE INDEX
-
-        let smallestDeveloper = developers.reduce((min, p) => p < min ? p : min, developers[0]);
-        for(let i = 0; i < incompleteTasks.length; i++) {
-
-            if(readyToWork(nodeMap, incompleteTasks[i])){
-
+        let currentMin = Number.MAX_VALUE;
+        // this will find the smallest developer that is greater than the start time
+        for(let i = 0; i < numDevelopers; i++) {
+            if(startTime <= developers[i] && developers[i] < currentMin) {
+                currentMin = developers[i];
+                index = i;
             }
         }
+        // if this developer doesn't exist, i.e if your time is 21 and your options are 0, 20, 15, 3, 11
+        // look for the smallest difference between start time and developer and put it there
+        if(index === -1) {
+            let smallestDifference = Number.MAX_VALUE;
+            for(let i = 0; i < numDevelopers; i ++) {
+                let difference = startTime - developers[i];
+                if(difference < smallestDifference){
+                    smallestDifference = difference;
+                    index = i;
+                }
+            }
+        }
+        // now we calculate the new time for the developer and place the task
+        // task will be removed from incomplete, added to complete, and flagged as complete and given complete time
+        if(startTime <= developers[index]) {
+            nodeMap.get(nextTask).completed = true;
+            nodeMap.get(nextTask).completedTime = developers[index] + nodeMap.get(nextTask).timeRemaining;
+            developers[index] += nodeMap.get(nextTask).timeRemaining;
+
+        }
+        else {
+            nodeMap.get(nextTask).completed = true;
+            nodeMap.get(nextTask).completedTime = startTime + nodeMap.get(nextTask).timeRemaining;
+            developers[index] = startTime + nodeMap.get(nextTask).timeRemaining;
+        }
+
+        completedTasks.set(nextTask, nodeMap.get(nextTask).completedTime);
+        incompleteTasks.delete(nextTask);
+        // let smallestDeveloper = developers.reduce((min, p) => p < min ? p : min, developers[0]);
+        // for(let i = 0; i < incompleteTasks.length; i++) {
+        //
+        //     if(readyToWork(nodeMap, incompleteTasks[i])){
+        //
+        //     }
+        // }
 
     }
 
+    developers.forEach(dev => {
+        console.log('Total time: ' + dev);
+    })
 }
 
 buildMap().then(nodeMap => {
@@ -271,6 +330,10 @@ buildMap().then(nodeMap => {
     nodeMap.forEach(function (value, key, map) {
         console.log(key + ': '+ nodeMap.get(key).timeRemaining+ " : " + nodeMap.get(key).endTime)
     });
+
+    console.log();
+
+    minTimeLimitedDevelopers(nodeMap, 4);
 });
 
 
