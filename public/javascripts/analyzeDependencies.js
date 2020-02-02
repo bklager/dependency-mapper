@@ -121,13 +121,13 @@ function buildArrayOfDependencies(nodeMap, key, array, time) {
         // potential problem to investigate: this should leave root nodes alone, but will there be a time
         // where a root node could be given a min start time other than 0?
 
-        nodeMap.get(key).inwardlinks.forEach(child => {
-            if(nodeMap.has(child)) {
-                if(nodeMap.get(child).minStartTime < (nodeMap.get(key).originalTimeEstimate + nodeMap.get(key).minStartTime) ){
-                    nodeMap.get(child).minStartTime = nodeMap.get(key).originalTimeEstimate + nodeMap.get(key).minStartTime;
-                }
-            }
-        });
+        // nodeMap.get(key).inwardlinks.forEach(child => {
+        //     if(nodeMap.has(child)) {
+        //         if(nodeMap.get(child).minStartTime < (nodeMap.get(key).originalTimeEstimate + nodeMap.get(key).minStartTime) ){
+        //             nodeMap.get(child).minStartTime = nodeMap.get(key).originalTimeEstimate + nodeMap.get(key).minStartTime;
+        //         }
+        //     }
+        // });
 
         nodeMap.get(key).inwardlinks.forEach(link => {
             let nextChain = array.slice(0);
@@ -174,10 +174,34 @@ function minTimeUnlimitedDevelopers(nodeMap) {
             time: longestChainTime
     };
 }
+
 function initialMinStartTime(nodeMap){
 //    this function should step through each dependency chain
 //    and find the largest time for a dependency
-
+   dependencyChains.forEach(chain => {
+       // This loop will break before the last item in the array since I am storing the time there.
+       for(let i = 0; i < chain.length - 1 ; i++) {
+           // this loops through each task and will look at the parent task (the task in the position before it)
+           // then it will find the new start time if it is larger than the current min time.
+           if(nodeMap.has(chain[i])){ // we need this because we can end up with nodes not in the sprint, if we want to change this the array
+               // of dependencies needs to be changed to not include things in other sprints
+               if(i === 0){
+                   nodeMap.get(chain[i]).endTime = nodeMap.get(chain[i]).timeRemaining;
+               }
+               else {
+                   console.log(' IN THE ELSE STATEMENT FOR  ' + chain[i]);
+                   let parentEnd = nodeMap.get(chain[i-1]).endTime;
+                   console.log(parentEnd);
+                   console.log(nodeMap.get(chain[i]).minStartTime);
+                   if (parentEnd > nodeMap.get(chain[i]).minStartTime){
+                       console.log('Ah but are we in this if statement?');
+                       nodeMap.get(chain[i]).minStartTime = parentEnd;
+                       nodeMap.get(chain[i]).endTime = parentEnd + nodeMap.get(chain[i]).timeRemaining;
+                   }
+               }
+           }
+       }
+   });
 }
 
 
@@ -242,6 +266,11 @@ buildMap().then(nodeMap => {
 
     minTimeUnlimitedDevelopers(nodeMap);
 
+    initialMinStartTime(nodeMap);
+
+    nodeMap.forEach(function (value, key, map) {
+        console.log(key + ': '+ nodeMap.get(key).timeRemaining+ " : " + nodeMap.get(key).endTime)
+    });
 });
 
 
